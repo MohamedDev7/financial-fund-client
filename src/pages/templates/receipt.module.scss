@@ -1,0 +1,85 @@
+.report-container {
+	position: relative;
+	overflow-y: scroll;
+
+	.view {
+		background-color: green;
+	}
+	.print {
+		display: none;
+	}
+
+	.header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		position: relative;
+		margin-bottom: 10px;
+		padding: 15px 0;
+		width: 100%;
+		border-bottom: 1px solid #000;
+
+		.right {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		.center {
+			height: 100px;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+
+			img {
+				height: 100%;
+			}
+		}
+		.left {
+			width: 150px;
+			display: flex;
+			flex-direction: column;
+			text-align: right;
+		}
+	}
+	.title-container {
+		position: relative;
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 10px;
+
+		.title {
+			width: 100%;
+			text-align: center;
+			text-decoration: underline;
+			font-weight: 500;
+		}
+		.month {
+			font-weight: 800;
+		}
+	}
+	.table {
+		width: 100%;
+	}
+	.signatures {
+		display: flex;
+		padding: 50px 15px;
+		justify-content: space-between;
+	}
+}
+@page {
+	size: A4;
+	margin: 1cm 0.75cm 2cm 0.5cm;
+	@bottom-right {
+		content: counter(page) "/" counter(pages);
+	}
+}
+@media print {
+	.view {
+		display: none;
+	}
+	.print {
+		display: block !important;
+	}
+}
