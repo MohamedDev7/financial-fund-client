@@ -1,10 +1,11 @@
 import classes from "./navbar.module.scss";
 
 import { Link } from "react-router-dom";
-import Button from "../Buttons/Button";
+// import Button from "../Buttons/Button";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useContext } from "react";
 import { AuthContext } from "../../store/auth-context";
+import { Button } from "@fluentui/react-components";
 // import { AuthContext } from "../../store/auth-context";
 
 const Navbar = () => {
@@ -29,10 +30,11 @@ const Navbar = () => {
 			</div>
 			<div>
 				<Button
-					color="#f0f0f0"
 					onClick={logoutHandler}
-					backgroundColor="#b23b3b"
+					appearance="primary"
 					icon={<LogoutIcon />}
+					style={{ backgroundColor: "#dd3547", color: "#fff" }}
+					className={classes.logoutBtn}
 				>
 					تسجيل الخروج
 				</Button>

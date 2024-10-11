@@ -11,7 +11,14 @@ const cacheRtl = createCache({
 	key: "data-grid-rtl-demo",
 	stylisPlugins: [prefixer, rtlPlugin],
 });
-const Table = ({ rows, columns, maxRows }) => {
+const Table = ({
+	rows,
+	columns,
+	hideFooter,
+	checkboxSelection,
+	onRowSelectionModelChange,
+	pageSize,
+}) => {
 	const existingTheme = useTheme();
 	const theme = React.useMemo(
 		() =>
@@ -33,10 +40,19 @@ const Table = ({ rows, columns, maxRows }) => {
 						columns={columns}
 						initialState={{
 							pagination: {
-								paginationModel: { page: 0, pageSize: maxRows },
+								paginationModel: { page: 0, pageSize: pageSize ? pageSize : 5 },
 							},
 						}}
-						hideFooter={rows.length > 100 ? false : true}
+						hideFooter={hideFooter ? hideFooter : false}
+						checkboxSelection={checkboxSelection ? checkboxSelection : false}
+						onRowSelectionModelChange={(ids) => {
+							const selectedIDs = new Set(ids);
+							const selectedRowData = rows.filter((row) =>
+								selectedIDs.has(row.id)
+							);
+
+							onRowSelectionModelChange(selectedRowData);
+						}}
 						sx={{
 							fontSize: "18px",
 							outline: "none !important",
@@ -63,7 +79,7 @@ const Table = ({ rows, columns, maxRows }) => {
 								maxHeight: "168px !important",
 							},
 						}}
-						pageSizeOptions={[5]}
+						pageSizeOptions={pageSize ? [pageSize] : [5]}
 						// checkboxSelection
 						disableRowSelectionOnClick
 						getRowClassName={(params) => {

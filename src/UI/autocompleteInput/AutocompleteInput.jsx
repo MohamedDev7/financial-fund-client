@@ -12,11 +12,12 @@ const AutocompleteInput = ({ label, options, onChange, value, required }) => {
 		disableMain: PropTypes.any,
 		required: PropTypes.any,
 	};
-
+	console.log(`options`, options);
 	return (
 		<div className={classes.container}>
 			<Autocomplete
 				options={options}
+				getOptionDisabled={(options) => options.disabled}
 				value={value}
 				onChange={onChange}
 				ListboxProps={{

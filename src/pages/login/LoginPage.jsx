@@ -22,7 +22,11 @@ const LoginPage = () => {
 	const loginHandler = async (e) => {
 		try {
 			e.preventDefault();
-			await login({ username: username, password: password });
+			await login({
+				username: username,
+				password: password,
+				db: "ypc-financial-2024",
+			});
 		} catch (err) {
 			setErr(err.response.data.message);
 		}

@@ -5,7 +5,8 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	background-color: #4663ac;
+	background-color: #ededed;
+	border-bottom: 1px solid #d9dee4;
 
 	.user {
 		display: flex;
@@ -24,6 +25,11 @@
 				height: 100%;
 				object-fit: cover;
 			}
+		}
+	}
+	.logoutBtn {
+		&:hover {
+			background-color: #c82333 !important;
 		}
 	}
 }

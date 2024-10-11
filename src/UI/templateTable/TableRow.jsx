@@ -20,7 +20,17 @@ const TableRow = (props) => {
 			)}
 
 			{props.columns.map((col) => (
-				<td key={col.field}>{props.row[col.field]}</td>
+				<td key={col.field}>
+					<div
+						style={{
+							whiteSpace: "nowrap",
+							textOverflow: "ellipsis",
+							overflow: "hidden",
+						}}
+					>
+						{props.row[col.field]}
+					</div>
+				</td>
 			))}
 			{props.actions && (
 				<td>

@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Row from "../../UI/row/Row";
 import TopBar from "../../components/TopBar/TopBar";
 import Card from "../../UI/card/Card";
 
-import { DismissRegular, SaveRegular } from "@fluentui/react-icons";
+import {
+	DismissRegular,
+	SaveRegular,
+	DeleteRegular,
+} from "@fluentui/react-icons";
 import {
 	Button,
 	Field,
@@ -15,35 +19,63 @@ import {
 	Table,
 	TableHeader,
 	TableHeaderCell,
+	Select,
+	makeStyles,
 } from "@fluentui/react-components";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "react-query";
 import AutocompleteInput from "../../UI/autocompleteInput/AutocompleteInput";
 
-// import Table from "../../UI/table/Table";
-import { addRemittancesList, getAllBeneficiaries } from "../../api/serverApi";
+import {
+	addDuesList,
+	getAllBeneficiaries,
+	getAllTreasuries,
+	getDuesListById,
+	getDuesByDuesListId,
+	updateDuesList,
+} from "../../api/serverApi";
 import { toast } from "react-toastify";
 
-const AddRemittancesPage = () => {
+const useStyles = makeStyles({
+	deleteBtn: {
+		backgroundColor: "#dd3547",
+		":hover": { backgroundColor: "#c82333" },
+	},
+});
+const DueFormPage = () => {
 	//hooks
 	const navigate = useNavigate();
+	const info = useLocation();
+	const styles = useStyles();
+
 	//states
 	const [title, setTitle] = useState("");
 	const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 	const [addedEmployees, setAddedEmployees] = useState([
-		{ id: 1, amount: "", beneficiaryId: null, name: "" },
+		{ id: 1, amount: 0, beneficiaryId: null, name: "" },
 	]);
 	const [addedOthers, setAddedOthers] = useState([
-		{ id: 1, amount: "", name: "" },
+		{ id: 1, amount: 0, name: "" },
 	]);
 	const [types, setTypes] = useState({ employees: false, others: false });
+	const [beneficiaries, setBeneficiaries] = useState([]);
 	const [employeesCount, setEmployeesCount] = useState(1);
 	const [othersCount, setOthersCount] = useState(1);
 	const [employeesTotal, setEmployeesTotal] = useState(0);
 	const [othersTotal, setOthersTotal] = useState(0);
+	const [clause, setClause] = useState("");
 
 	//queries
-	const { data: beneficiaries } = useQuery({
+	const { data: treasuries } = useQuery({
+		queryKey: ["treasuries"],
+		queryFn: getAllTreasuries,
+		select: (res) => {
+			return res.data.treasuries.map((el) => {
+				return { ...el };
+			});
+		},
+	});
+	const { data: beneficiariesData } = useQuery({
 		queryKey: ["beneficiaries"],
 		queryFn: getAllBeneficiaries,
 		select: (res) => {
@@ -51,9 +83,82 @@ const AddRemittancesPage = () => {
 				return { ...el };
 			});
 		},
+		onSuccess: (res) => setBeneficiaries(res),
 	});
+	useQuery({
+		queryKey: ["duesList", info.state?.id],
+		queryFn: getDuesListById,
+		select: (res) => {
+			return res.data.duesList;
+		},
+		onSuccess: (data) => {
+			setTitle(data.title);
+			setDate(data.date);
+			setClause(treasuries.filter((el) => el.id === data.clause)[0].name);
+		},
+		enabled: !!info.state && !!treasuries,
+	});
+	useQuery({
+		queryKey: ["duesByListId", info.state?.id],
+		queryFn: getDuesByDuesListId,
+		select: (res) => {
+			let employees = [];
+			let employeesCount = 0;
+			let othersCount = 0;
+			let others = [];
+			res.data.dues.forEach((el) => {
+				if (el.type === "employee") {
+					employees.push({ ...el, id: employeesCount + 1 });
+					employeesCount++;
+				}
+				if (el.type === "others") {
+					others.push({ ...el, id: othersCount + 1 });
+					othersCount++;
+				}
+			});
+
+			return { employees, others };
+		},
+		onSuccess: (data) => {
+			if (data.employees.length > 0) {
+				let total = 0;
+				const editEdemployees = data.employees.map((el) => {
+					total = total + el.amount;
+					const beneficiary = beneficiariesData.filter(
+						(ele) => ele.name === el.name
+					);
+
+					return {
+						...el,
+						beneficiaryId: beneficiary[0].id,
+						financial_num: beneficiary[0].financial_num,
+					};
+				});
+				setAddedEmployees(editEdemployees);
+				setEmployeesTotal(total);
+				setEmployeesCount(data.employees.length + 1);
+				setOthersCount(data.others.length + 1);
+				setTypes((prev) => {
+					return { ...prev, employees: true };
+				});
+			}
+			if (data.others.length > 0) {
+				let total = 0;
+				data.others.forEach((el) => {
+					total = total + el.amount;
+				});
+				setOthersTotal(total);
+				setAddedOthers(data.others);
+				setTypes((prev) => {
+					return { ...prev, others: true };
+				});
+			}
+		},
+		enabled: !!info.state && !!beneficiariesData,
+	});
+
 	const saveMutation = useMutation({
-		mutationFn: addRemittancesList,
+		mutationFn: addDuesList,
 		onSuccess: (res) => {
 			toast.success("تم إضافة المستحقات بنجاح", {
 				position: toast.POSITION.TOP_CENTER,
@@ -61,59 +166,91 @@ const AddRemittancesPage = () => {
 			navigate("./..");
 		},
 		onError: (err) => {
-			toast.error("حصل خطأ أثناء عملية الحفظ،الرجاء التواصل مع الدعم الفني", {
+			toast.error(err.response.data.message, {
+				position: toast.POSITION.TOP_CENTER,
+			});
+		},
+	});
+	const updateMutation = useMutation({
+		mutationFn: updateDuesList,
+		onSuccess: (res) => {
+			toast.success("تم تعديل كشف المستحقات بنجاح", {
+				position: toast.POSITION.TOP_CENTER,
+			});
+			navigate("./..");
+		},
+		onError: (err) => {
+			toast.error(err.response.data.message, {
 				position: toast.POSITION.TOP_CENTER,
 			});
 		},
 	});
 
 	//functions
+	useEffect(() => {
+		let total = 0;
+		const updatedBeneficiaries = beneficiaries.map((beneficiary) => {
+			const match = addedEmployees.find(
+				(employee) => employee.beneficiaryId === beneficiary.id
+			);
+			if (match) {
+				return { ...beneficiary, disabled: true };
+			}
+			return { ...beneficiary, disabled: false };
+		});
+		addedEmployees.forEach((el) => (total = total + el.amount));
+		setEmployeesTotal(total);
+		setBeneficiaries(updatedBeneficiaries);
+	}, [addedEmployees]);
+	useEffect(() => {
+		let total = 0;
+		addedOthers.forEach((el) => (total = total + el.amount));
+		setOthersTotal(total);
+	}, [addedOthers]);
 	const titleChangeHandler = (e) => {
 		setTitle(e.target.value);
 	};
 	const employeeChangeHandler = (e, value, fieldId) => {
-		var total = 0;
 		const updatedAdded = addedEmployees.map((el) => {
 			if (el.id === fieldId) {
 				if (!value) {
 					return {
 						...el,
 						beneficiaryId: null,
-						amount: "",
+						financial_num: null,
+						amount: 0,
 						name: "",
+						phone_number: "",
 					};
 				}
 				return {
 					...el,
 					beneficiaryId: value.id,
-					amount: "",
+					financial_num: value.financial_num,
+					amount: 0,
 					name: value.name,
+					phone_number: value.phone_number,
 				};
 			}
 			return el;
 		});
-		updatedAdded.forEach((el) => (total = total + el.amount));
-		setEmployeesTotal(total);
 		setAddedEmployees(updatedAdded);
 	};
 	const othersChangeHandler = (e, id) => {
-		var total = 0;
 		const updatedAdded = addedOthers.map((el) => {
 			if (el.id === id) {
 				return {
 					...el,
 					name: e.target.value,
-					amount: "",
+					amount: 0,
 				};
 			}
 			return el;
 		});
-		updatedAdded.forEach((el) => (total = total + el.amount));
-		setOthersTotal(total);
+
 		setAddedOthers(updatedAdded);
 	};
 	const employeeAmountChangeHandler = (e, value) => {
-		var total = 0;
 		const updatedAdded = addedEmployees.map((el) => {
 			if (el.id === value) {
 				return {
@@ -123,12 +260,9 @@ const AddRemittancesPage = () => {
 			}
 			return el;
 		});
-		updatedAdded.forEach((el) => (total = total + el.amount));
-		setEmployeesTotal(total);
 		setAddedEmployees(updatedAdded);
 	};
 	const othersAmountChangeHandler = (e, value) => {
-		var total = 0;
 		const updatedAdded = addedOthers.map((el) => {
 			if (el.id === value) {
 				return {
@@ -138,8 +272,6 @@ const AddRemittancesPage = () => {
 			}
 			return el;
 		});
-		updatedAdded.forEach((el) => (total = total + el.amount));
-		setOthersTotal(total);
 		setAddedOthers(updatedAdded);
 	};
 	const addEmployeeChangeHandler = () => {
@@ -147,8 +279,9 @@ const AddRemittancesPage = () => {
 			...prev,
 			{
 				id: employeesCount + 1,
-				amount: "",
+				amount: 0,
 				beneficiaryId: null,
+				financial_num: null,
 				name: "",
 			},
 		]);
@@ -160,7 +293,7 @@ const AddRemittancesPage = () => {
 			...prev,
 			{
 				id: othersCount + 1,
-				amount: "",
+				amount: 0,
 				name: "",
 			},
 		]);
@@ -209,14 +342,29 @@ const AddRemittancesPage = () => {
 			});
 			return;
 		}
-
-		saveMutation.mutate({
-			title,
-			addedEmployees: filteredAddedEmployees,
-			addedOthers: filteredAddedOthers,
-			total: employeesTotal + othersTotal,
-			date,
-		});
+		if (info.state) {
+			updateMutation.mutate({
+				title: title.trim(),
+				addedEmployees: filteredAddedEmployees,
+				addedOthers: filteredAddedOthers,
+				total: employeesTotal + othersTotal,
+				date,
+				clause: treasuries.filter((el) => el.name === clause)[0].id,
+				id: info.state.id,
+				type: "manual",
+			});
+		} else {
+			console.log(`addedOthers`, addedOthers);
+			saveMutation.mutate({
+				title: title.trim(),
+				addedEmployees: filteredAddedEmployees,
+				addedOthers: filteredAddedOthers,
+				total: employeesTotal + othersTotal,
+				date,
+				clause: treasuries.filter((el) => el.name === clause)[0].id,
+				type: "manual",
+			});
+		}
 	};
 
 	//data
@@ -243,18 +391,13 @@ const AddRemittancesPage = () => {
 			isResizable: true,
 		},
 	];
-	const test = () => {
-		console.log(`addedEmployees`, addedEmployees);
-	};
+
 	return (
 		<>
 			<form onSubmit={onSaveHandler}>
 				<TopBar
 					right={
 						<>
-							<button onClick={test} type="button">
-								test
-							</button>
 							<Button
 								appearance="secondary"
 								icon={<DismissRegular />}
@@ -283,7 +426,7 @@ const AddRemittancesPage = () => {
 					}}
 				>
 					<Card title="بيانات المستند">
-						<Row flex={[2, 1]}>
+						<Row flex={[2, 1, 1]}>
 							<Field label="العنوان" required={true}>
 								<Input value={title} onChange={titleChangeHandler} />
 							</Field>
@@ -296,6 +439,20 @@ const AddRemittancesPage = () => {
 									}}
 								/>
 							</Field>
+							{treasuries && (
+								<Field
+									label="البند"
+									required={true}
+									onChange={(e) => setClause(e.target.value)}
+								>
+									<Select value={clause}>
+										<option></option>
+										{treasuries.map((el) => (
+											<option key={el.id}>{el.name}</option>
+										))}
+									</Select>
+								</Field>
+							)}
 						</Row>
 						<Row>
 							<div>
@@ -379,6 +536,18 @@ const AddRemittancesPage = () => {
 													/>
 												</Field>
 											</TableCell>
+											<TableCell>
+												<Button
+													icon={<DeleteRegular />}
+													appearance="primary"
+													className={styles.deleteBtn}
+													onClick={() =>
+														setAddedEmployees((prev) =>
+															prev.filter((el) => el.id !== item.id)
+														)
+													}
+												/>
+											</TableCell>
 										</TableRow>
 									))}
 									<TableRow>
@@ -456,6 +625,18 @@ const AddRemittancesPage = () => {
 													/>
 												</Field>
 											</TableCell>
+											<TableCell>
+												<Button
+													icon={<DeleteRegular />}
+													appearance="primary"
+													className={styles.deleteBtn}
+													onClick={() =>
+														setAddedOthers((prev) =>
+															prev.filter((el) => el.id !== item.id)
+														)
+													}
+												/>
+											</TableCell>
 										</TableRow>
 									))}
 									<TableRow>
@@ -483,4 +664,4 @@ const AddRemittancesPage = () => {
 	);
 };
 
-export default AddRemittancesPage;
+export default DueFormPage;

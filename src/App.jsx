@@ -5,7 +5,6 @@ import SideBar from "./components/sideBar/SideBar";
 import LoginPage from "./pages/login/LoginPage";
 
 import PropTypes from "prop-types";
-import Card from "./UI/card/Card";
 import {
 	createHashRouter,
 	RouterProvider,
@@ -13,16 +12,35 @@ import {
 	Navigate,
 } from "react-router-dom";
 import { AuthContext } from "./store/auth-context";
-import RemittancesListsPage from "./pages/remittances/RemittancesListsPage";
-import AddRemittancesUsingExcelPage from "./pages/remittances/AddRemittancesUsingExcelPage";
-import Search from "./pages/remittances/Search";
+import DuesListsPage from "./pages/dues/DuesListsPage";
+import DuesUsingExcelFormPage from "./pages/dues/DuesUsingExcelFormPage";
+import Search from "./pages/dues/Search";
 import BeneficiariesPage from "./pages/beneficiaries/BeneficiariesPage";
-import AddBeneficiaryPage from "./pages/beneficiaries/AddBeneficiaryPage";
-import AddRemittancesPage from "./pages/remittances/AddRemittancesPage";
+import BeneficiaryFormPage from "./pages/beneficiaries/BeneficiaryFormPage";
+import DueFormPage from "./pages/dues/DueFormPage";
 import HomePage from "./pages/home/HomePage";
 import ReceivePage from "./pages/receive/ReceivePage";
 import AddReceivePage from "./pages/receive/AddReceivePage";
-import AddOtherReceivePage from "./pages/receive/AddOtherReceivePage";
+import ReceiveTemplate from "./pages/templates/ReceiveTemplate";
+import DuesListTemplate from "./pages/templates/DueListTemplate";
+import PayTemplate from "./pages/templates/PayTemplate";
+import PayPage from "./pages/pay/PayPage";
+import AddPayPage from "./pages/pay/AddPayPage";
+import TreasuryFromPage from "./pages/treasuries/TreasuryFromPage";
+import TreasuriesPage from "./pages/treasuries/TreasuriesPage";
+import UsersPage from "./pages/users/UsersPage";
+import UserFormPage from "./pages/users/UserFormPage";
+import PaysListPage from "./pages/pay/PaysListPage";
+import PayDuesTemplate from "./pages/templates/PayDuesTemplate";
+import ReceiveReport from "./pages/reports/ReceiveReport";
+import ReceiveReportTemplate from "./pages/templates/ReceiveReportTemplate";
+import SalaryAdvancesPage from "./pages/salaryAdvances/SalaryAdvancesPage";
+import SalaryAdvanceFormPage from "./pages/salaryAdvances/SalaryAdvanceFormPage";
+import PaySalaryAdvanceTemplate from "./pages/templates/PaySalaryAdvanceTemplate";
+import PayDuesListTemplate from "./pages/templates/PayDuesListTemplate";
+import AddDuesUsingTemplatePage from "./pages/dues/AddDuesUsingTemplatePage";
+import SelectYearPage from "./pages/selectYear/SelectYearPage";
+import HrDuesFormPage from "./pages/dues/HrDuesFormPage";
 
 function App() {
 	const { currUser } = useContext(AuthContext);
@@ -45,7 +63,7 @@ function App() {
 			<div
 				style={{
 					display: "flex",
-					backgroundColor: "#edeef5",
+					backgroundColor: "#f4f6f9",
 					height: "100vh",
 				}}
 			>
@@ -60,7 +78,7 @@ function App() {
 					}}
 				>
 					<Navbar />
-					<div style={{ overflowY: "auto" }}>
+					<div style={{ overflowY: "auto", padding: " 0 15px" }}>
 						<Outlet />
 					</div>
 				</div>
@@ -90,20 +108,44 @@ function App() {
 					element: <Navigate to="/home" />,
 				},
 				{
-					path: "remittancesLists",
+					path: "duesLists",
 					element: <Outlet />,
 					children: [
 						{
 							path: "",
-							element: <RemittancesListsPage />,
+							element: <DuesListsPage />,
 						},
 						{
 							path: "add",
-							element: <AddRemittancesPage />,
+							element: <DueFormPage />,
+						},
+						{
+							path: "edit",
+							element: <DueFormPage />,
+						},
+						{
+							path: "editExcel",
+							element: <DuesUsingExcelFormPage />,
+						},
+						{
+							path: "print",
+							element: <DuesListTemplate />,
 						},
 						{
 							path: "addUsingExcel",
-							element: <AddRemittancesUsingExcelPage />,
+							element: <DuesUsingExcelFormPage />,
+						},
+						{
+							path: "addUsingTemplate",
+							element: <AddDuesUsingTemplatePage />,
+						},
+						{
+							path: "addHrDues",
+							element: <HrDuesFormPage />,
+						},
+						{
+							path: "editHrDues",
+							element: <HrDuesFormPage />,
 						},
 					],
 				},
@@ -128,8 +170,74 @@ function App() {
 							element: <AddReceivePage />,
 						},
 						{
-							path: "addOther",
-							element: <AddOtherReceivePage />,
+							path: "print",
+							element: <ReceiveTemplate />,
+						},
+					],
+				},
+				{
+					path: "salaryAdvance",
+					element: <Outlet />,
+					children: [
+						{
+							path: "",
+							element: <SalaryAdvancesPage />,
+						},
+						{
+							path: "add",
+							element: <SalaryAdvanceFormPage />,
+						},
+						{
+							path: "print",
+							element: <PaySalaryAdvanceTemplate />,
+						},
+					],
+				},
+				{
+					path: "pay",
+					element: <Outlet />,
+					children: [
+						{
+							path: "",
+							element: <PayPage />,
+							children: [
+								{ path: "paysList", element: <PaysListPage /> },
+								{ path: "search", element: <Search /> },
+							],
+						},
+						{
+							path: "add",
+							element: <AddPayPage />,
+						},
+						{
+							path: "print",
+							element: <PayTemplate />,
+						},
+						{
+							path: "printDues",
+							element: <PayDuesTemplate />,
+						},
+						{
+							path: "printDuesList",
+							element: <PayDuesListTemplate />,
+						},
+					],
+				},
+				{
+					path: "users",
+					element: <Outlet />,
+					children: [
+						{
+							path: "",
+							element: <UsersPage />,
+						},
+						{
+							path: "add",
+							element: <UserFormPage />,
+						},
+						{
+							path: "edit",
+							element: <UserFormPage />,
 						},
 					],
 				},
@@ -143,9 +251,49 @@ function App() {
 						},
 						{
 							path: "add",
-							element: <AddBeneficiaryPage />,
+							element: <BeneficiaryFormPage />,
+						},
+						{
+							path: "edit",
+							element: <BeneficiaryFormPage />,
 						},
 					],
+				},
+				{
+					path: "treasuries",
+					element: <Outlet />,
+					children: [
+						{
+							path: "",
+							element: <TreasuriesPage />,
+						},
+						{
+							path: "add",
+							element: <TreasuryFromPage />,
+						},
+						{
+							path: "edit",
+							element: <TreasuryFromPage />,
+						},
+					],
+				},
+				{
+					path: "ReceiveReport",
+					element: <Outlet />,
+					children: [
+						{
+							path: "",
+							element: <ReceiveReport />,
+						},
+						{
+							path: "print",
+							element: <ReceiveReportTemplate />,
+						},
+					],
+				},
+				{
+					path: "year",
+					element: <SelectYearPage />,
 				},
 			],
 		},
